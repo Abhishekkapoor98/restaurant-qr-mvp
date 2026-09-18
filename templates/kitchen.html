@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Kitchen Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6 h-screen">
+    <div class="flex justify-between items-center mb-8 border-b border-gray-700 pb-4">
+        <h1 class="text-3xl font-black text-yellow-400">👨‍🍳 Live Kitchen Dashboard</h1>
+        <div class="flex items-center space-x-2">
+            <span class="relative flex h-3 w-3">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span class="text-green-400 font-bold tracking-widest text-sm">SYSTEM ONLINE</span>
+        </div>
+    </div>
+    
+    <div id="order-list" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <!-- Purane DB wale pending orders -->
+        {{range .orders}}
+        <div class="bg-gray-800 border-l-4 border-yellow-500 p-5 rounded shadow-lg" id="order-{{.ID}}">
+            <div class="flex justify-between mb-3">
+                <span class="font-bold text-2xl text-white">Table {{.TableNumber}}</span>
+                <span class="text-sm text-gray-400 bg-gray-700 px-2 py-1 rounded">#{{.ID}}</span>
+            </div>
+            <p class="text-lg mb-6 text-gray-300 font-medium">{{.Items}}</p>
+            <form action="/kitchen/complete/{{.ID}}" method="POST">
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded transition">Mark Ready</button>
+            </form>
+        </div>
+        {{end}}
+    </div>
+
+    <script>
+        // WebSocket Connection Setup
+        const protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const ws = new WebSocket(protocol + window.location.host + "/ws");
+
+        ws.onmessage = function(event) {
+            const order = JSON.parse(event.data);
+            
+            // Naya order box create karo HTML me
+            const newBox = document.createElement('div');
+            // Animate pulse daala hai taaki kitchen staff ka dhyaan jaye
+            newBox.className = "bg-gray-800 border-l-4 border-red-500 p-5 rounded shadow-xl animate-pulse";
+            newBox.innerHTML = `
+                <div class="flex justify-between mb-3">
+                    <span class="font-bold text-2xl text-white">Table ${order.table_number}</span>
+                    <span class="text-xs font-bold text-red-100 bg-red-600 px-2 py-1 rounded animate-bounce">NEW INCOMING!</span>
+                </div>
+                <p class="text-lg mb-6 text-gray-300 font-medium">${order.items}</p>
+                <form action="/kitchen/complete/${order.id}" method="POST">
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded transition">Mark Ready</button>
+                </form>
+            `;
+            
+            // Naye order ko list ke sabse aage daal do
+            document.getElementById('order-list').prepend(newBox);
+        };
+        
+        ws.onopen = () => console.log("Connected to Real-time Sync");
+    </script>
+</body>
+</html>
